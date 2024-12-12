@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, redirect, url_for
 from flask_migrate import Migrate
 from extensions import db
 from models import Incident, Person, IncidentPerson
@@ -20,26 +20,45 @@ def get_incidents_count():
     count = Incident.query.filter(
         Incident.registration_date.between(start_date, end_date)
     ).count()
-    return render_template('/incidents_count', start_date=start_date, end_date=end_date, count=count)
+    return render_template('/incidents_count.html', start_date=start_date, end_date=end_date, count=count)
 
 
 @app.route('/person_incidents/<person_id>', methods=['GET'])
 def get_person_incidents(person_id):
     count = IncidentPerson.query.filter_by(person_id=person_id).count()
-    return jsonify({'person_incident_count': count})
+    return render_template('/incidents_of_person.html', count=count)
 
-@app.route('/incident', methods=['POST'])
+
+@app.route('/person_incidents', methods=['GET', 'POST'])
+def person_incidents():
+    if request.method == 'POST':
+        person_id = request.form['person_id']
+        return redirect(url_for('get_person_incidents', person_id=person_id))
+    return render_template('/person_inc_form')
+
+
+@app.route('/add_incident', methods=['POST', 'GET'])
 def add_incident():
-    data = request.json
-    new_incident = Incident(
-        registration_number=data['registration_number'],
-        registration_date=data['registration_date'],
-        summary=data['summary'],
-        decision=data['decision']
-    )
-    db.session.add(new_incident)
-    db.session.commit()
-    return jsonify({'message': 'Incident added successfully'})
+    if request.method == 'POST':
+        data = request.form
+        new_incident = Incident(
+            registration_number=data['registration_number'],
+            registration_date=data['registration_date'],
+            summary=data['summary'],
+            decision=data['decision']
+        )
+        db.session.add(new_incident)
+        db.session.commit()
+        return render_template(
+            'add_incident.html', 
+            registration_number=data['registration_number'],
+            registration_date=data['registration_date'],
+            summary=data['summary'],
+            decision=data['decision']
+        )
+    return render_template('add_incident.html')
+
+
 
 @app.route('/incident/<int:incident_id>', methods=['PUT'])
 def update_incident(incident_id):
@@ -52,20 +71,39 @@ def update_incident(incident_id):
     db.session.commit()
     return jsonify({'message': 'Incident updated successfully'})
 
-@app.route('/person', methods=['POST'])
+@app.route('/add_person', methods=['POST', 'GET'])
 def add_person():
-    data = request.json
-    new_person = Person(
-        registration_number=data['registration_number'],
-        last_name=data['last_name'],
-        first_name=data['first_name'],
-        middle_name=data.get('middle_name'),
-        address=data['address'],
-        convictions_count=data.get('convictions_count', 0)
-    )
-    db.session.add(new_person)
-    db.session.commit()
-    return jsonify({'message': 'Person added successfully'})
+    if request.method == 'POST':
+        data = request.form
+        new_person = Person(
+            registration_number=data['registration_number'],
+            last_name=data['last_name'],
+            first_name=data['first_name'],
+            middle_name=data.get('middle_name'),
+            address=data['address'],
+            convictions_count=data.get('convictions_count', 0)
+        )
+        db.session.add(new_person)
+        db.session.commit()
+        
+        registration_number = data['registration_number']
+        last_name = data['last_name']
+        first_name = data['first_name']
+        middle_name = data.get('middle_name')
+        address = data['address']
+        convictions_count = data.get('convictions_count', 0)
+        
+        return render_template(
+            'add_person.html',
+            registration_number=registration_number,
+            first_name=first_name,
+            last_name=last_name,
+            middle_name=middle_name,
+            address=address,
+            convictions_count=convictions_count
+        )
+    return render_template('add_person.html')
+
 
 @app.route('/person/<int:person_id>', methods=['PUT'])
 def update_person(person_id):
