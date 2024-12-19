@@ -29,12 +29,12 @@ def get_person_incidents(person_id):
     return render_template('/incidents_of_person.html', count=count)
 
 
-@app.route('/person_incidents', methods=['GET', 'POST'])
-def person_incidents():
-    if request.method == 'POST':
-        person_id = request.form['person_id']
-        return redirect(url_for('get_person_incidents', person_id=person_id))
-    return render_template('/person_inc_form')
+#@app.route('/person_incidents', methods=['GET', 'POST'])
+#def person_incidents():
+#    if request.method == 'POST':
+#        person_id = request.form['person_id']
+#        return redirect(url_for('get_person_incidents', person_id=person_id))
+#    return render_template('/person_inc_form')
 
 
 @app.route('/add_incident', methods=['POST', 'GET'])
@@ -105,15 +105,32 @@ def add_person():
     return render_template('add_person.html')
 
 
-@app.route('/person/<int:person_id>', methods=['PUT'])
-def update_person(person_id):
-    data = request.json
+#@app.route('/person/<int:person_id>', methods=['PUT'])
+#def update_person(person_id):
+#    data = request.json
+#    person = Person.query.get_or_404(person_id)
+#    person.registration_number = data['registration_number']
+#    person.last_name = data['last_name']
+#    person.first_name = data['first_name']
+#    person.middle_name = data.get('middle_name')
+#    person.address = data['address']
+#    person.convictions_count = data['convictions_count']
+#    db.session.commit()
+#    return jsonify({'message': 'Person updated successfully'})
+
+@app.route('/persons', methods=['GET'])
+def persons_list():
+    persons = Person.query.all()
+    return render_template('persons_list.html', title="Список лиц", persons=persons)
+
+@app.route('/person/<int:person_id>/incidents_count', methods=['GET'])
+def person_incidents_count(person_id):
+    count = IncidentPerson.query.filter_by(person_id=person_id).count()
     person = Person.query.get_or_404(person_id)
-    person.registration_number = data['registration_number']
-    person.last_name = data['last_name']
-    person.first_name = data['first_name']
-    person.middle_name = data.get('middle_name')
-    person.address = data['address']
-    person.convictions_count = data['convictions_count']
-    db.session.commit()
-    return jsonify({'message': 'Person updated successfully'})
+    
+    return render_template(
+        'person_incidents_count.html',
+        title=f"Инциденты для {person.first_name} {person.last_name}",
+        person=person,
+        count=count
+    )
